@@ -75,7 +75,7 @@ async function runParallelSelfPlay() {
   setInterval(submitBatch, BATCH_SUBMIT_INTERVAL);
 
   const startWorker = (workerId: number) => {
-    const worker = new Worker(new URL("./game_worker.ts", import.meta.url).href, { type: "module" });
+    const worker = new Worker(new URL(`./game_worker.ts?v=${Date.now()}`, import.meta.url).href, { type: "module" });
 
     worker.onmessage = async (e) => {
       const { boardHashes, winner } = e.data;
