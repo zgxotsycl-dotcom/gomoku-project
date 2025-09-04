@@ -1,14 +1,31 @@
-import { load } from 'https://deno.land/std@0.224.0/dotenv/mod.ts';
-
-// Explicitly load .env file from the script's directory
-const envPath = new URL('.env', import.meta.url).pathname;
-await load({ envPath, export: true });
+// --- Manual .env parsing ---
+async function getEnvConfig() {
+    try {
+        const path = new URL('.env', import.meta.url).pathname;
+        const content = await Deno.readTextFile(path);
+        const config: { [key: string]: string } = {};
+        for (const line of content.split('\n')) {
+            if (line.trim() && !line.startsWith('#')) {
+                const [key, ...valueParts] = line.split('=');
+                if (key && valueParts.length > 0) {
+                    config[key.trim()] = valueParts.join('=').trim();
+                }
+            }
+        }
+        return config;
+    } catch (e) {
+        console.error("Could not read .env file. Please ensure it exists in the same directory as the script.", e);
+        return {};
+    }
+}
 
 // --- Configuration ---
+const config = await getEnvConfig();
 const NUM_WORKERS = 8; // Number of parallel games to run
 const BATCH_SUBMIT_INTERVAL = 60000; // Submit data every 60 seconds
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_URL = config.SUPABASE_URL!;
+const SUPABASE_ANON_KEY = config.SUPABASE_ANON_KEY!;
+// NOTE: The game_worker does not need the service key, it uses the anon key for its own logic if any.
 
 // --- Batching Accumulators ---
 let knowledgeBatch = {
@@ -20,6 +37,10 @@ let knowledgeBatch = {
 
 // --- Submission Logic ---
 async function submitBatch() {
+  if (knowledgeBatch.black_wins.size === 0 && knowledgeBatch.black_losses.size === 0 && knowledgeBatch.white_wins.size === 0 && knowledgeBatch.white_losses.size === 0) {
+    console.log('No new knowledge to submit. Skipping batch.');
+    return;
+  }
   console.log('Starting batch submission...');
   const batchToSubmit = { ...knowledgeBatch };
   
@@ -49,8 +70,7 @@ async function submitBatch() {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json'
         },
-        // The edge function expects aiPlayer and gameWinner, we simulate this
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           patterns: sub.patterns, 
           gameWinner: sub.won ? sub.perspective : (sub.perspective === 'black' ? 'white' : 'black'), 
           aiPlayer: sub.perspective
@@ -96,7 +116,7 @@ async function runParallelSelfPlay() {
       }
       
       // Start a new game immediately
-      worker.postMessage({});
+      worker.postMessage({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
     };
 
     worker.onerror = (err) => {
@@ -105,7 +125,7 @@ async function runParallelSelfPlay() {
     };
 
     // Initial start of the worker
-    worker.postMessage({});
+    worker.postMessage({ supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY });
   };
 
   // Create and start the pool of workers
@@ -118,4 +138,7 @@ async function runParallelSelfPlay() {
 }
 
 // --- Run Script ---
-runParallelSelfPlay().catch(e => console.error("A critical error occurred in the self-play manager:", e));
+runParallelSelfPlay().catch(e => {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    console.error("A critical error occurred in the self-play manager:", errorMessage);
+});
