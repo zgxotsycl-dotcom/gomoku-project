@@ -3,8 +3,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // This script is a self-contained worker for playing a single game of Gomoku using MCTS.
 
 self.onmessage = async (e) => {
-    const { supabaseUrl, supabaseServiceKey } = e.data;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { supabaseUrl, supabaseAnonKey } = e.data;
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // --- MCTS Implementation ---
     const BOARD_SIZE = 19;
