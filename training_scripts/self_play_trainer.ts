@@ -1,4 +1,8 @@
-import 'https://deno.land/std@0.224.0/dotenv/load.ts';
+import { load } from 'https://deno.land/std@0.224.0/dotenv/mod.ts';
+
+// Explicitly load .env file from the script's directory
+const envPath = new URL('.env', import.meta.url).pathname;
+await load({ envPath, export: true });
 
 // --- Configuration ---
 const NUM_WORKERS = 8; // Number of parallel games to run
