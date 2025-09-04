@@ -8,7 +8,7 @@ self.onmessage = async (e) => {
 
     // --- MCTS Implementation ---
     const BOARD_SIZE = 19;
-    const MCTS_ITERATIONS_DEFAULT = 1000;
+    const MCTS_ITERATIONS_DEFAULT = 7777;
     const MCTS_ITERATIONS_CRITICAL = 5000;
     const MCTS_ITERATIONS_FORCED = 200;
     const C_PARAM = Math.sqrt(2); // Exploration parameter

@@ -24,7 +24,11 @@ const PORT = process.env.PORT || 3002;
 
 const rooms = {}; // In-memory store for room state
 const publicMatchmakingQueue = [];
-const TURN_DURATION = 30000; // 30 seconds
+
+// New Timer Constants
+const BASE_TURN_DURATION = 5000; // 5 seconds
+const INCREMENT = 1000; // 1 second
+const MAX_TURN_DURATION = 30000; // 30 seconds
 
 // --- Helper Functions ---
 const startTurnTimer = (roomId) => {
@@ -35,7 +39,8 @@ const startTurnTimer = (roomId) => {
     clearTimeout(room.turnTimer);
   }
 
-  room.turnEndsAt = Date.now() + TURN_DURATION;
+  const currentTurnDuration = room.turnLimit;
+  room.turnEndsAt = Date.now() + currentTurnDuration;
   broadcastRoomState(roomId); // Broadcast state with new timer info
 
   room.turnTimer = setTimeout(async () => {
@@ -52,7 +57,7 @@ const startTurnTimer = (roomId) => {
       const { error } = await supabase.from('active_games').delete().eq('room_id', roomId);
       if (error) console.error('Error deleting active game on timeout:', error);
     }
-  }, TURN_DURATION);
+  }, currentTurnDuration);
 };
 
 const broadcastRoomState = (roomId) => {
@@ -64,6 +69,7 @@ const broadcastRoomState = (roomId) => {
     spectatorCount: room.spectators.size,
     currentPlayer: room.currentPlayer,
     turnEndsAt: room.turnEndsAt,
+    // We can also send blackTime and whiteTime if we manage it on the server
   };
   io.to(roomId).emit('room-state-update', state);
 };
@@ -90,7 +96,6 @@ io.on('connection', (socket) => {
 
   // --- Public Matchmaking ---
   socket.on('join-public-queue', (userProfile) => {
-    // Prevent user from joining queue multiple times
     if (publicMatchmakingQueue.some(p => p.profile.id === userProfile.id)) {
       console.log(`User ${userProfile.username} (${userProfile.id}) is already in the queue.`);
       return;
@@ -115,6 +120,7 @@ io.on('connection', (socket) => {
         currentPlayer: 'black',
         turnTimer: null,
         turnEndsAt: null,
+        turnLimit: BASE_TURN_DURATION, // Initialize turn limit
         rematchVotes: new Set(),
         isPrivate: false,
       };
@@ -155,6 +161,7 @@ io.on('connection', (socket) => {
         currentPlayer: 'black',
         turnTimer: null,
         turnEndsAt: null,
+        turnLimit: BASE_TURN_DURATION, // Initialize turn limit
         rematchVotes: new Set(),
         isPrivate: true,
     };
@@ -194,6 +201,9 @@ io.on('connection', (socket) => {
     if (!room || !room.players[socket.id] || room.players[socket.id].role !== room.currentPlayer) {
         return; // Ignore move if it's not the player's turn, or player doesn't exist
     }
+
+    // Increment turn limit before starting next turn
+    room.turnLimit = Math.min(MAX_TURN_DURATION, room.turnLimit + INCREMENT);
 
     const newPlayer = room.currentPlayer === 'black' ? 'white' : 'black';
     room.currentPlayer = newPlayer;
@@ -238,6 +248,7 @@ io.on('connection', (socket) => {
       console.log(`Rematch starting in room ${roomId}`);
       room.gameState = 'playing';
       room.currentPlayer = 'black';
+      room.turnLimit = BASE_TURN_DURATION; // Reset turn limit on rematch
       room.rematchVotes.clear();
       io.to(roomId).emit('new-game-starting');
       startTurnTimer(roomId);

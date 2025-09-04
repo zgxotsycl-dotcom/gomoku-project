@@ -30,6 +30,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang={lng}>
+      <head>
+        {/* Replace this with the script from your ad network (e.g., Google AdSense) */}
+        <Script
+          async
+          src="https://pagedad2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_CLIENT_ID"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={inter.className}>
         <I18nProvider lng={lng}>
           <AuthProvider>

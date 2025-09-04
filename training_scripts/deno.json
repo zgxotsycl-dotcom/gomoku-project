@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "lib": ["deno.window"]
+  },
+  "tasks": {
+    "train": "deno run --allow-net --allow-env --allow-read ./self_play_trainer.ts"
+  }
+}

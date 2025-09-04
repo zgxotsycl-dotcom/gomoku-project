@@ -62,19 +62,31 @@ self.onmessage = async (e) => {
         }
     }
     function evaluateLine(line, p) {
-        let score = 0, consecutive = 0, openEnds = 0;
-        for (let i = 0; i < line.length; i++) {
-            if (line[i] === p) {
-                consecutive++;
-            } else if (line[i] === null) {
-                if (consecutive > 0) { openEnds++; score += getScore(consecutive, openEnds); consecutive = 0; openEnds = 1; }
-                else openEnds = 1;
-            } else {
-                if (consecutive > 0) score += getScore(consecutive, openEnds);
-                consecutive = 0; openEnds = 0;
+        let score = 0;
+        for (let i = 0; i <= line.length - 5; i++) {
+            const window = line.slice(i, i + 5);
+            let playerCount = 0;
+            let opponentCount = 0;
+            let emptyCount = 0;
+            for (const stone of window) {
+                if (stone === p) playerCount++;
+                else if (stone === null) emptyCount++;
+                else opponentCount++;
+            }
+
+            if (playerCount > 0 && opponentCount > 0) continue; // Mixed window is not a threat
+
+            let openEnds = 0;
+            if (i > 0 && line[i-1] === null) openEnds++;
+            if (i + 5 < line.length && line[i+5] === null) openEnds++;
+
+            if (playerCount > 0) {
+                 score += getScore(playerCount, openEnds);
+            }
+            if (opponentCount > 0) {
+                 score += getScore(opponentCount, openEnds) * 1.1; // Blocking bonus
             }
         }
-        if (consecutive > 0) score += getScore(consecutive, openEnds);
         return score;
     }
     function getMoveScore(b, r, c, p) {
@@ -197,6 +209,7 @@ self.onmessage = async (e) => {
     }
 
     const findBestMoveMCTS = (board, player) => {
+        console.log("[Worker] MCTS: Starting search...");
         return new Promise((resolve) => {
             const startTime = Date.now();
             const root = new MCTSNode(board, player);
@@ -216,19 +229,31 @@ self.onmessage = async (e) => {
             }
 
             for (let i = 0; i < MCTS_ITERATIONS; i++) {
+                if (i % 500 === 0) {
+                    console.log(`[Worker] MCTS: Iteration ${i}...`);
+                }
                 if (Date.now() - startTime > MCTS_TIMEOUT) {
                     console.log(`[Worker] MCTS timeout! Iterations: ${i}`);
                     break;
                 }
                 let node = root;
-                while (node.isFullyExpanded() && node.children.length > 0) { node = node.selectBestChild(); }
-                if (!node.isFullyExpanded()) { node = node.expand(); }
+                while (node.isFullyExpanded() && node.children.length > 0) { 
+                    node = node.selectBestChild(); 
+                }
+                if (!node) {
+                    console.log("[Worker] MCTS: Tree fully explored or stuck, breaking.");
+                    break;
+                }
+                if (!node.isFullyExpanded()) { 
+                    node = node.expand(); 
+                }
                 if (node) {
                     const result = node.simulate();
                     node.backpropagate(result);
                 }
             }
 
+            console.log("[Worker] MCTS: Search loop finished. Finding best move...");
             let bestMove = null;
             let maxVisits = -1;
             for (const child of root.children) {
@@ -237,7 +262,10 @@ self.onmessage = async (e) => {
                     bestMove = child.move;
                 }
             }
-            resolve(bestMove || getPossibleMoves(board, player)[0]);
+            const moves = getPossibleMoves(board, player);
+            const finalMove = bestMove || (moves.length > 0 ? moves[0] : null);
+            console.log("[Worker] MCTS: Best move found:", finalMove);
+            resolve(finalMove);
         });
     };
     // --- END: Hashing, Heuristics, MCTS ---
@@ -261,27 +289,33 @@ self.onmessage = async (e) => {
 
     function isThreat(b, p, r, c, len) {
         for (const dir of directions) {
-            let in_a_row = 1;
+            let consecutive = 1;
             let openEnds = 0;
-            let line = [{player: p, r, c}];
 
             // Positive direction
             for (let i = 1; i < 6; i++) {
                 const currentR = r + i * dir.y, currentC = c + i * dir.x;
-                if (b[currentR]?.[currentC] === p) { in_a_row++; line.push({player: p, r: currentR, c: currentC}); }
-                else { if (b[currentR]?.[currentC] === null) openEnds++; break; }
+                if (b[currentR]?.[currentC] === p) {
+                    consecutive++;
+                } else {
+                    if (b[currentR]?.[currentC] === null) openEnds++;
+                    break;
+                }
             }
+
             // Negative direction
             for (let i = 1; i < 6; i++) {
                 const currentR = r - i * dir.y, currentC = c - i * dir.x;
-                if (b[currentR]?.[currentC] === p) { in_a_row++; line.push({player: p, r: currentR, c: currentC}); }
-                else { if (b[currentR]?.[currentC] === null) openEnds++; break; }
+                if (b[currentR]?.[currentC] === p) {
+                    consecutive++;
+                } else {
+                    if (b[currentR]?.[currentC] === null) openEnds++;
+                    break;
+                }
             }
 
-            if (in_a_row >= len) {
-                if (len === 4 && openEnds < 2) continue; // A closed four is not a VCF threat
-                return true;
-            }
+            if (len === 5 && consecutive >= 5) return true;
+            if (len < 5 && consecutive === len && openEnds >= 2) return true; 
         }
         return false;
     }
@@ -328,6 +362,7 @@ self.onmessage = async (e) => {
         const blockMove = findThreats(board, opponent, 5)[0];
         if (blockMove) return [blockMove.r, blockMove.c];
 
+        /*
         // 3. Check for my VCF win
         const vcfMove = findVCF(board, player, VCF_SEARCH_DEPTH);
         if (vcfMove) {
@@ -341,6 +376,7 @@ self.onmessage = async (e) => {
             console.log("[AI] Blocking opponent VCF at:", opponentVCF);
             return [opponentVCF.r, opponentVCF.c];
         }
+        */
 
         // 5. If no forced wins, use MCTS
         console.log("[AI] No VCF found, using MCTS...");

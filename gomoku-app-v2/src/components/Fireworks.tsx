@@ -35,8 +35,24 @@ const particleStyle = `
 }
 `;
 
-const SingleExplosion = ({ particleCount, color, radius, type }) => {
-    const [particles, setParticles] = useState([]);
+interface SingleExplosionProps {
+    particleCount: number;
+    color: string;
+    radius: number;
+    type: 'peony' | 'crackle';
+}
+
+interface Particle {
+    id: number;
+    style: React.CSSProperties & {
+        '--x': string;
+        '--y': string;
+        '--color': string;
+    };
+}
+
+const SingleExplosion = ({ particleCount, color, radius, type }: SingleExplosionProps) => {
+    const [particles, setParticles] = useState<Particle[]>([]);
 
     useEffect(() => {
         const newParticles = Array.from({ length: particleCount }).map((_, i) => {
@@ -67,8 +83,18 @@ const SingleExplosion = ({ particleCount, color, radius, type }) => {
     );
 };
 
+interface Firework {
+    id: number;
+    x: number;
+    y: number;
+    type: 'peony' | 'crackle';
+    color: string;
+    particleCount: number;
+    radius: number;
+}
+
 const Fireworks = () => {
-    const [fireworks, setFireworks] = useState<any[]>([]);
+    const [fireworks, setFireworks] = useState<Firework[]>([]);
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const containerRef = useRef(null);
     const styleId = useId();
@@ -101,7 +127,7 @@ const Fireworks = () => {
             const x = width * 0.2 + Math.random() * (width * 0.6);
             const y = height * 0.2 + Math.random() * (height * 0.6);
 
-            const fireworkTypes = ['peony', 'peony', 'crackle'];
+            const fireworkTypes = ['peony', 'peony', 'crackle'] as const;
             const type = fireworkTypes[Math.floor(Math.random() * fireworkTypes.length)];
 
             const newFirework = {

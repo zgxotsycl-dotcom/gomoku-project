@@ -59,10 +59,12 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('General error in edge function:', error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
-  }
+  const errorMessage = error instanceof Error
+    ? error.message : 'An unknown error occurred';
+  console.error('General error in edge function:', errorMessage);
+  return new Response(JSON.stringify({ error: errorMessage }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    status: 500,
+  });
+}
 })

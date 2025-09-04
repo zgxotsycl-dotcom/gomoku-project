@@ -31,9 +31,13 @@ const PostGameManager = ({ isPlayer, isSpectator, onExit, gameMode, room, socket
     const handleJoin = () => { toast.success(t('RequestingToJoin')); socketRef.current?.emit('request-to-join', room); };
     if (isPlayer) {
         return (
-            <div className="mt-4 flex gap-4">
-                <button onClick={handleRematch} className="px-4 py-2 bg-blue-500 text-white rounded btn-hover-scale">{t('PlayAgain')}</button>
-                <button onClick={handleLeave} className="px-4 py-2 bg-gray-500 text-white rounded btn-hover-scale">{t('Leave')}</button>
+            <div className="mt-6 w-full max-w-xs mx-auto flex justify-around items-center">
+                <button onClick={handleRematch} className="px-8 py-3 text-lg bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors btn-hover-scale">
+                    {t('PlayAgain')}
+                </button>
+                <button onClick={handleLeave} className="px-8 py-3 text-lg bg-gray-600 text-white font-bold rounded-lg hover:bg-gray-700 transition-colors btn-hover-scale">
+                    {t('OK')}
+                </button>
             </div>
         );
     }

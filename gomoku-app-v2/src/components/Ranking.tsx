@@ -4,24 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-
-interface Profile {
-  id: string;
-  username: string;
-  elo_rating: number;
-  is_supporter: boolean;
-  nickname_color: string | null;
-  badge_color: string | null;
-}
-
-const PatronBadge = ({ color, text }: { color: string | null, text: string }) => (
-    <span 
-        className="ml-2 px-2 py-0.5 text-xs font-semibold text-black rounded-full"
-        style={{ backgroundColor: color || '#FFD700' }}
-    >
-        {text}
-    </span>
-);
+import type { Profile } from '../types';
+import PatronBadge from './PatronBadge';
 
 const Ranking = () => {
   const { t } = useTranslation();

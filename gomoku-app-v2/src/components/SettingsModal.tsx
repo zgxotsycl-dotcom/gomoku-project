@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { FaPaintBrush, FaStar, FaUser, FaLock } from 'react-icons/fa';
+import { FaPaintBrush, FaStar, FaUser, FaLock, FaImage } from 'react-icons/fa';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,16 +18,17 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
   const [username, setUsername] = useState('');
   const [nicknameColor, setNicknameColor] = useState('#FFFFFF');
   const [badgeColor, setBadgeColor] = useState('#FFD700');
+  const [bannerColor, setBannerColor] = useState('#4A5568');
   const [loading, setLoading] = useState(false);
   const [usernameError, setUsernameError] = useState('');
 
   const validateUsername = (name: string) => {
     if (name.length < 3) {
-      setUsernameError(t('Nickname must be at least 3 characters long.'));
+      setUsernameError(t('error_username_min_length'));
       return false;
     }
-    if (name.length > 20) {
-      setUsernameError(t('Nickname must be at most 20 characters long.'));
+    if (name.length > 12) {
+      setUsernameError(t('error_username_max_length'));
       return false;
     }
     setUsernameError('');
@@ -48,11 +49,12 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
       validateUsername(currentUsername);
       setNicknameColor(profile.nickname_color || '#FFFFFF');
       setBadgeColor(profile.badge_color || '#FFD700');
+      setBannerColor(profile.banner_color || '#4A5568');
     } else {
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
-          .select('username, nickname_color, badge_color, is_supporter')
+          .select('username, nickname_color, badge_color, banner_color, is_supporter')
           .eq('id', user.id)
           .single();
         
@@ -62,6 +64,7 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
           validateUsername(currentUsername);
           setNicknameColor(data.nickname_color || '#FFFFFF');
           setBadgeColor(data.badge_color || '#FFD700');
+          setBannerColor(data.banner_color || '#4A5568');
         }
       };
       fetchProfile();
@@ -82,6 +85,7 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
         username: string;
         nickname_color?: string;
         badge_color?: string;
+        banner_color?: string;
     } = {
         username: username,
     };
@@ -89,6 +93,7 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
     if (profile?.is_supporter) {
         updateData.nickname_color = nicknameColor;
         updateData.badge_color = badgeColor;
+        updateData.banner_color = bannerColor;
     }
 
     const { data, error } = await supabase
@@ -99,8 +104,6 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
       .single();
 
     setLoading(false);
-
-    console.log('Supabase update response:', { data, error });
 
     if (error) {
       toast.error(t('FailedToSaveSettings') + ': ' + error.message);
@@ -155,6 +158,18 @@ const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                 <input type="text" value={badgeColor} onChange={(e) => setBadgeColor(e.target.value)} className="w-full px-2 py-1 rounded bg-gray-700 text-white border border-gray-600" disabled={!profile?.is_supporter}/>
             </div>
           </div>
+
+          <div className={!profile?.is_supporter ? 'locked-feature' : ''}>
+            <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+              <FaImage /> {t('BannerColor', 'Banner Color')}
+              {!profile?.is_supporter && <FaLock className="lock-icon" />}
+            </label>
+            <div className="flex items-center gap-2">
+                <input type="color" value={bannerColor} onChange={(e) => setBannerColor(e.target.value)} className="w-10 h-10 rounded border-gray-600" disabled={!profile?.is_supporter}/>
+                <input type="text" value={bannerColor} onChange={(e) => setBannerColor(e.target.value)} className="w-full px-2 py-1 rounded bg-gray-700 text-white border border-gray-600" disabled={!profile?.is_supporter}/>
+            </div>
+          </div>
+
         </div>
         <div className="mt-6 flex justify-end gap-4">
           <button onClick={onClose} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 btn-hover-scale">{t('Cancel')}</button>
