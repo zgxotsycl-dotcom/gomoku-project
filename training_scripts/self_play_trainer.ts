@@ -2,7 +2,7 @@
 const NUM_WORKERS = 8; // Number of parallel games to run
 const BATCH_SUBMIT_INTERVAL = 60000; // Submit data every 60 seconds
 const SUPABASE_URL = "https://xkwgfidiposftwwasdqs.supabase.co";
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhrd2dmaWRpcG9zZnR3d2FzZHFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwODM3NzMsImV4cCI6MjA3MDY1OTc3M30.-9n_26ga07dXFiFOShP78_p9cEcIKBxHBEYJ1A1gaiE";
 
 // --- Batching Accumulators ---
 let knowledgeBatch = {
