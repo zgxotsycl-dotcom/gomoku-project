@@ -1,0 +1,12 @@
+# Environment variables
+.env
+.env*.local
+
+# PM2 configuration
+ecosystem.config.js
+
+# Node modules
+node_modules
+
+# Deno lock files
+deno.lock

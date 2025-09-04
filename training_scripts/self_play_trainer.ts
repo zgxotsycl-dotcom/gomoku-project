@@ -1,31 +1,8 @@
-// --- Manual .env parsing ---
-async function getEnvConfig() {
-    try {
-        const path = new URL('.env', import.meta.url).pathname;
-        const content = await Deno.readTextFile(path);
-        const config: { [key: string]: string } = {};
-        for (const line of content.split('\n')) {
-            if (line.trim() && !line.startsWith('#')) {
-                const [key, ...valueParts] = line.split('=');
-                if (key && valueParts.length > 0) {
-                    config[key.trim()] = valueParts.join('=').trim();
-                }
-            }
-        }
-        return config;
-    } catch (e) {
-        console.error("Could not read .env file. Please ensure it exists in the same directory as the script.", e);
-        return {};
-    }
-}
-
 // --- Configuration ---
-const config = await getEnvConfig();
 const NUM_WORKERS = 8; // Number of parallel games to run
 const BATCH_SUBMIT_INTERVAL = 60000; // Submit data every 60 seconds
-const SUPABASE_URL = config.SUPABASE_URL!;
-const SUPABASE_ANON_KEY = config.SUPABASE_ANON_KEY!;
-// NOTE: The game_worker does not need the service key, it uses the anon key for its own logic if any.
+const SUPABASE_URL = "https://xkwgfidiposftwwasdqs.supabase.co";
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 // --- Batching Accumulators ---
 let knowledgeBatch = {
