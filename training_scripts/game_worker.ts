@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // This script is a self-contained worker for playing a single game of Gomoku using MCTS.
 
